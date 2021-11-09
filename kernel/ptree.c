@@ -1,6 +1,6 @@
 #include <linux/kernel.h>
 #include <linux/syscalls.h>
-#include <kernel/ptree.h>
+#include "ptree.h"
 
 int register_ptree(ptree_func func){
 	return 0;
