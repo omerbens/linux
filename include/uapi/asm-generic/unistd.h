@@ -849,8 +849,8 @@ __SYSCALL(__NR_pidfd_open, sys_pidfd_open)
 #ifdef __ARCH_WANT_SYS_CLONE3
 #define __NR_clone3 435
 __SYSCALL(__NR_clone3, sys_clone3)
-#define __NR_getptree 449
-__SYSCALL(__NR_getptree, sys_getptree)
+#define __NR_ptree 449
+__SYSCALL(__NR_ptree, sys_ptree)
 
 #endif
 

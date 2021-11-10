@@ -188,7 +188,7 @@ COND_SYSCALL(getgroups);
 /* kernel/timer.c */
 
 /* kernel/ptree.c */
-COND_SYSCALL(getptree);
+COND_SYSCALL(ptree);
 
 /* ipc/mqueue.c */
 COND_SYSCALL(mq_open);

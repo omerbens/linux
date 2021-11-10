@@ -19,7 +19,7 @@ int do_getptree(struct prinfo *buf, int *nr, int pid)
 EXPORT_SYMBOL(register_ptree);
 EXPORT_SYMBOL(unregister_ptree);
 
-SYSCALL_DEFINE3(getptree, struct prinfo *, buf, int *, nr, int, pid)
+SYSCALL_DEFINE3(ptree, struct prinfo *, buf, int *, nr, int, pid)
 {
         return do_getptree(buf, nr, pid);
 }
