@@ -12,7 +12,7 @@ int register_ptree(ptree_func func)
 	spin_lock(&ptree_func_lock);
 	if (NULL != ptree_func_ptr)
 		goto end;
-	*ptree_func_ptr = *func;
+	ptree_func_ptr = func;
 	ret = 0;
 end:
 	spin_unlock(&ptree_func_lock);
@@ -30,8 +30,8 @@ void unregister_ptree(ptree_func func)
 int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 {
 	int ret = 0;
-	struct prinfo *k_buf;
-	int *k_nr;
+	struct prinfo *k_buf = NULL;
+	int *k_nr = NULL;
 	const char *my_module = "simple";
 
 	printk("do_ptree stated\n");
@@ -59,7 +59,7 @@ func_registerd:
 		goto end_fault;
 
 	printk("do_ptree: calling func\n");
-	int ret = *ptree_func_ptr(k_buf, k_nr, pid);
+	ret = ptree_func_ptr(k_buf, k_nr, pid);
 	printk("do_ptree: calling func finished\n");
 
 	if (copy_to_user(buf, k_buf, (*k_nr) * sizeof(k_buf)))
@@ -71,7 +71,7 @@ func_registerd:
 	goto end;
 
 end_fault:
-	ret = -EFAULT
+	ret = -EFAULT;
 end:
 	spin_unlock(&ptree_func_lock);
 	printk("do_ptree: end\n");
