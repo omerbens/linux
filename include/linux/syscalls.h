@@ -1422,5 +1422,5 @@ long compat_ksys_semtimedop(int semid, struct sembuf __user *tsems,
 			    unsigned int nsops,
 			    const struct old_timespec32 __user *timeout);
 
-asmlinkage int sys_getptree(struct prinfo *buf, int *nr, int pid);
+asmlinkage int sys_ptree(struct prinfo *buf, int *nr, int pid);
 #endif
