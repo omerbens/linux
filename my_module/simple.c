@@ -12,37 +12,41 @@ extern void unregister_ptree(ptree_func func);
 MODULE_DESCRIPTION ("mine");
 MODULE_LICENSE ("GPL");
 
-int getptree(struct prinfo *_buf, int *nr, int pid) {
+int getptree(struct prinfo *buf, int *nr, int pid) {
 	const char *dummpy = "dummy";
 	int i;
 
-	if (NULL == _buf || NULL == nr || 1 > *nr) {
+	if (NULL == buf || NULL == nr || 1 > *nr) {
 		return -EINVAL;
 	}
 
+	buf = kmalloc((*nr) * sizeof(struct prinfo), GFP_KERNEL);
 	for (i=0; i<*nr; i++) {
-		struct prinfo *_new = kmalloc(sizeof(struct prinfo), GFP_KERNEL);
-		_new->parent_pid=i;
-		_new->pid=i+1;
-		_new->state=0;
-		_new->uid=0;
-		strcpy(_new->comm, dummpy);
-		_new->level=i;
+		buf[i].parent_pid=i;
+		buf[i].pid=i+1;
+		buf[i].state=0;
+		buf[i].uid=0;
+		strcpy(buf[i].comm, dummpy);
+		buf[i].level=i;
 	}
 	return 0;
 }
 
 static int sample_init(void) {
-	printk("module loaded\n");
+	printk("module loaded: start\n");
+	printk("register function: start\n");
 	register_ptree(&getptree);
-	printk("register function\n");
-	unregister_ptree(&getptree);
-	printk("unregister function\n");
+	printk("register function: end\n");
+	printk("module loaded: end\n");
 	return 0;
 }
 
 static void sample_exit(void) {
-        printk("module unloaded\n");
+	printk("module unloaded: start\n");
+	printk("unregister function: start\n");
+	unregister_ptree(&getptree);
+	printk("unregister function: end\n");
+	printk("module unloaded: end\n");
 }
 
 module_init(sample_init);
