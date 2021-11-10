@@ -34,7 +34,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 	int *k_nr = NULL;
 	const char *my_module = "simple";
 
-	printk("do_ptree stated\n");
+	printk("do_ptree: stated\n");
 	spin_lock(&ptree_func_lock);
 
 	if (NULL != ptree_func_ptr) {
@@ -42,19 +42,21 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 	}
 
 	spin_unlock(&ptree_func_lock);
-	printk("trying to request module\n");
+	printk("do_ptree: trying to request module\n");
 	request_module(my_module);
 	spin_lock(&ptree_func_lock);
 
 	if (NULL == ptree_func_ptr) {
-		printk("no ptree func registerd\n");
+		printk("do_ptree: no ptree func registerd\n");
 		ret = -ENOSYS;
 		goto end;
 	}
 
 func_registerd:
+	printk("do_ptree: copy from nr\n");
 	if (copy_from_user(k_nr, nr, sizeof(k_nr)))
 		goto end_fault;
+	printk("do_ptree: copy from buf\n");
 	if (copy_from_user(k_buf, buf, (*k_nr) * sizeof(k_buf)))
 		goto end_fault;
 
@@ -62,8 +64,10 @@ func_registerd:
 	ret = ptree_func_ptr(k_buf, k_nr, pid);
 	printk("do_ptree: calling func finished\n");
 
+	printk("do_ptree: copy to buf\n");
 	if (copy_to_user(buf, k_buf, (*k_nr) * sizeof(k_buf)))
 		goto end_fault;
+	printk("do_ptree: copy to nr\n");
 	if (copy_to_user(nr, k_nr, sizeof(k_nr)))
 		goto end_fault;
 

@@ -19,8 +19,6 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 	if (NULL == buf || NULL == nr || 1 > *nr) {
 		return -EINVAL;
 	}
-
-	buf = kmalloc((*nr) * sizeof(struct prinfo), GFP_KERNEL);
 	for (i=0; i<*nr; i++) {
 		buf[i].parent_pid=i;
 		buf[i].pid=i+1;
