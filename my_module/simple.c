@@ -19,7 +19,7 @@ MODULE_DESCRIPTION ("mine");
 MODULE_LICENSE ("GPL");
 
 void write_data(struct prinfo *buf, struct task_struct *t, int level) {
-	buf->pid = t->pid;
+	buf->pid = t->tgid;
 	buf->parent_pid = t->real_parent->pid;
 	buf->state = t->state;
 	buf->uid=0;
@@ -33,13 +33,13 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 	int is_added;
 	struct task_level *bfs;
 	struct task_struct *t, *s;
-	struct list_head *pos;
 	int i;
 
-	if (NULL == buf || NULL == nr || 1 > *nr) {
+	if (NULL == buf || NULL == nr || 1 > *nr)
 		return -EINVAL;
-	}
 	bfs = kmalloc((*nr) * sizeof(struct task_level), GFP_KERNEL);
+	if (NULL == bfs)
+		return -EFAULT;
 
 	rcu_read_lock();
 	t = pid_task(find_vpid(pid), PIDTYPE_PID);
@@ -57,8 +57,9 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 			if (bfs[i].level != current_level)
 				continue;
 
-			list_for_each(pos, &t->children) {
-				s = list_entry(pos, struct task_struct, children);
+			list_for_each_entry(s, &bfs[i].value->children, sibling) {
+				if (s->tgid != s->pid)
+					continue;
 				bfs[count].level = current_level+1;
 				bfs[count].value = s;
 				count++;
