@@ -59,20 +59,16 @@ func_registerd:
 	printk("do_ptree: copied from nr, value is %d\n", k_nr);
 
 	printk("do_ptree: kmalloc buf\n");
-	k_buf = kmalloc(k_nr * sizeof(*k_buf), GFP_KERNEL);
+	k_buf = kmalloc(k_nr * sizeof(k_buf), GFP_KERNEL);
 	if (NULL == k_buf)
 		goto end_fault;
 
-	printk("do_ptree: copy from buf\n");
-	if (copy_from_user(k_buf, buf, k_nr * sizeof(*k_buf)))
-		goto end_fault;
-
-	printk("do_ptree: calling func\n");
+	printk("do_ptree: calling func with nr of %d\n", nr);
 	ret = ptree_func_ptr(k_buf, &k_nr, pid);
-	printk("do_ptree: calling func finished\n");
+	printk("do_ptree: calling func finished with nr of %d\n", nr);
 
 	printk("do_ptree: copy to buf\n");
-	if (copy_to_user(buf, k_buf, (*k_nr) * sizeof(k_buf)))
+	if (copy_to_user(buf, k_buf, k_nr * sizeof(k_buf)))
 		goto end_fault;
 	printk("do_ptree: copy to nr\n");
 	if (copy_to_user(nr, &k_nr, sizeof(k_nr)))
