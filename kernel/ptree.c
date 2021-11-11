@@ -63,9 +63,9 @@ func_registerd:
 	if (NULL == k_buf)
 		goto end_fault;
 
-	printk("do_ptree: calling func with nr of %d\n", nr);
+	printk("do_ptree: calling func with nr of %d\n", k_nr);
 	ret = ptree_func_ptr(k_buf, &k_nr, pid);
-	printk("do_ptree: calling func finished with nr of %d\n", nr);
+	printk("do_ptree: calling func finished with nr of %d\n", k_nr);
 
 	printk("do_ptree: copy to buf\n");
 	if (copy_to_user(buf, k_buf, k_nr * sizeof(k_buf)))
