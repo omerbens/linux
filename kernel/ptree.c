@@ -31,7 +31,6 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 {
 	int ret = 0;
 	int k_nr;
-	int i=0;
 	struct prinfo *k_buf = NULL;
 	const char *my_module = "simple";
 
@@ -85,8 +84,8 @@ end_fault:
 end_fault_free:
 	ret = -EFAULT;
 end_free:
-	for (i=0; i< k_nr; i++)
-		kfree(&(k_buf[i]));
+	printk("do_ptree: free buf\n");
+	kfree(k_buf);
 end:
 	spin_unlock(&ptree_func_lock);
 	printk("do_ptree: end\n");
