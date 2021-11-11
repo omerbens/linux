@@ -30,8 +30,8 @@ void unregister_ptree(ptree_func func)
 int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 {
 	int ret = 0;
+	int k_nr;
 	struct prinfo *k_buf = NULL;
-	int *k_nr = NULL;
 	const char *my_module = "simple";
 
 	printk("do_ptree: stated\n");
@@ -54,21 +54,28 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 
 func_registerd:
 	printk("do_ptree: copy from nr\n");
-	if (copy_from_user(k_nr, nr, sizeof(k_nr)))
+	if (copy_from_user(&k_nr, nr, sizeof(k_nr)))
 		goto end_fault;
+	printk("do_ptree: copied from nr, value is %d\n", k_nr);
+
+	printk("do_ptree: kmalloc buf\n");
+	k_buf = kmalloc(k_nr * sizeof(*k_buf), GFP_KERNEL);
+	if (NULL == k_buf)
+		goto end_fault;
+
 	printk("do_ptree: copy from buf\n");
-	if (copy_from_user(k_buf, buf, (*k_nr) * sizeof(k_buf)))
+	if (copy_from_user(k_buf, buf, k_nr * sizeof(*k_buf)))
 		goto end_fault;
 
 	printk("do_ptree: calling func\n");
-	ret = ptree_func_ptr(k_buf, k_nr, pid);
+	ret = ptree_func_ptr(k_buf, &k_nr, pid);
 	printk("do_ptree: calling func finished\n");
 
 	printk("do_ptree: copy to buf\n");
 	if (copy_to_user(buf, k_buf, (*k_nr) * sizeof(k_buf)))
 		goto end_fault;
 	printk("do_ptree: copy to nr\n");
-	if (copy_to_user(nr, k_nr, sizeof(k_nr)))
+	if (copy_to_user(nr, &k_nr, sizeof(k_nr)))
 		goto end_fault;
 
 	printk("do_ptree: job done\n");
@@ -76,6 +83,11 @@ func_registerd:
 
 end_fault:
 	ret = -EFAULT;
+	goto end;
+
+//end_fault_free:
+//end_free:
+	// todo: fill free
 end:
 	spin_unlock(&ptree_func_lock);
 	printk("do_ptree: end\n");
