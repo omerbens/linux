@@ -29,15 +29,13 @@ void write_data(struct prinfo *buf, struct task_struct *t, int level) {
 }
 
 int getptree(struct prinfo *buf, int *nr, int pid) {
-	int count = 1;
-	int current_level = 0;
-	int is_added;
+	int current_level, is_added, count, i;
 	struct task_level *bfs;
 	struct task_struct *t, *s;
-	int i;
 
-	if (NULL == buf || NULL == nr || 1 > *nr)
+	if (NULL == buf || NULL == nr || 1 > *nr || pid < 0)
 		return -EINVAL;
+
 	bfs = kmalloc((*nr) * sizeof(struct task_level), GFP_KERNEL);
 	if (NULL == bfs)
 		return -EFAULT;
@@ -53,11 +51,13 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 	}
 	bfs[0].level = 0;
 	bfs[0].value = t;
+	count = 1;
+	current_level = 0;
 
 	// filling bfs
 	while (count < *nr) {
 		is_added = 0;
-		for (i=0; i<count && count <= *nr; i++) {
+		for (i=0; i<count && count < *nr; i++) {
 			if (bfs[i].level != current_level)
 				continue;
 
@@ -69,7 +69,7 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 				count++;
 				is_added = 1;
 
-				if (count >= *nr)
+				if (!(count < *nr))
 					break;
 			}
 		}
