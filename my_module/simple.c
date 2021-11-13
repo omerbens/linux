@@ -28,7 +28,7 @@ void write_data(struct prinfo *buf, struct task_struct *t, int level) {
 	buf->level=level;
 }
 
-int getptree(struct prinfo *buf, int *nr, int pid) {
+int get_ptree(struct prinfo *buf, int *nr, int pid) {
 	int current_level, is_added, count, i;
 	struct task_level *bfs;
 	struct task_struct *t, *s;
@@ -96,7 +96,7 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 static int sample_init(void) {
 	printk("module loaded: start\n");
 	printk("register function: start\n");
-	register_ptree(&getptree);
+	register_ptree(&get_ptree);
 	printk("register function: end\n");
 	printk("module loaded: end\n");
 	return 0;
@@ -105,7 +105,7 @@ static int sample_init(void) {
 static void sample_exit(void) {
 	printk("module unloaded: start\n");
 	printk("unregister function: start\n");
-	unregister_ptree(&getptree);
+	unregister_ptree(&get_ptree);
 	printk("unregister function: end\n");
 	printk("module unloaded: end\n");
 }
