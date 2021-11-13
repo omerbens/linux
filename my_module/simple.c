@@ -5,6 +5,7 @@
 #include <linux/slab.h>
 #include <linux/prinfo.h>
 #include <linux/sched.h>
+#include <linux/init_task.h>
 
 typedef int (*ptree_func)(struct prinfo *buf, int *nr, int pid);
 extern int register_ptree(ptree_func func);
@@ -20,9 +21,9 @@ MODULE_LICENSE ("GPL");
 
 void write_data(struct prinfo *buf, struct task_struct *t, int level) {
 	buf->pid = t->tgid;
-	buf->parent_pid = t->real_parent->pid;
+	buf->parent_pid = t->parent->tgid;
 	buf->state = t->state;
-	buf->uid=0;
+	buf->uid=t->cred->uid.val;
 	strncpy(buf->comm, t->comm, 15);
 	buf->level=level;
 }
@@ -42,7 +43,10 @@ int getptree(struct prinfo *buf, int *nr, int pid) {
 		return -EFAULT;
 
 	rcu_read_lock();
-	t = pid_task(find_vpid(pid), PIDTYPE_PID);
+	if (0 == pid)
+		t = &init_task;
+	else
+		t = pid_task(find_vpid(pid), PIDTYPE_PID);
 	if (NULL == t) {
 		rcu_read_unlock();
 		return -EINVAL;
