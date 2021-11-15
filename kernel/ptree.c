@@ -73,7 +73,10 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		goto end;
 	printk("do_ptree: copied from nr, value is %d\n", k_nr);
 
-	if(1 > k_nr || !access_ok(buf, k_nr * sizeof(*buf)))
+	if(1 > k_nr || sizeof(*buf) > (k_nr * sizeof(*buf)))
+		goto end
+
+	if (!access_ok(buf, k_nr * sizeof(*buf)))
 		goto end;
 
 	if (!is_ptree_set()) {
