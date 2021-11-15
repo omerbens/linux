@@ -45,7 +45,7 @@ end:
 int is_ptree_set() {
 	int ret = 0;
 	spin_lock(&ptree_func_lock);
-	if (NULL == get_safe_ptr()) {
+	if (NULL == ptree_func_ptr) {
 		ret = 1;
 	}
 	spin_unlock(&ptree_func_lock);
