@@ -31,10 +31,8 @@ int safe_ptree(struct prinfo *buf, int *nr, int pid) {
 	int ret = -ENOSYS;
 
 	spin_lock(&ptree_func_lock);
-	if (NULL == ptree_func_ptr) {
-		printk("do_ptree: no ptree func registerd\n");
+	if (NULL == ptree_func_ptr)
 		goto end;
-	}
 	ret = ptree_func_ptr(buf, nr, pid)
 end:
 	spin_unlock(&ptree_func_lock);
@@ -65,7 +63,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		goto end;
 	}
 
-	if (0 == access_ok(*nr, sizeof(int)) || 0 == access_ok(*buf, sizeof())) {
+	if (0 == access_ok(nr, sizeof(*nr)) || 0 == access_ok(buf, (*nr) * sizeof(*buf))) {
 		goto end;
 	}
 
@@ -91,7 +89,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 	printk("do_ptree: kmalloc buf\n");
 	k_buf = kmalloc(k_nr * sizeof(*k_buf), GFP_KERNEL);
 	if (NULL == k_buf)
-		goto end_free;
+		goto end;
 
 	printk("do_ptree: calling func with nr of %d\n", k_nr);
 	ret = safe_ptree(k_buf, &k_nr, pid);
@@ -106,7 +104,6 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		goto end_free;
 
 	printk("do_ptree: job done\n");
-	goto end_free;
 
 end_free:
 	printk("do_ptree: free buf\n");
