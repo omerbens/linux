@@ -57,11 +57,11 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 
 	if (NULL == buf || NULL == nr || 1 > *nr) {
 		ret = -EINVAL;
-		return ret;
+		goto end;
 	}
 
 	if (0 == access_ok(nr, sizeof(int)) || 0 == access_ok(buf, sizeof())) {
-		return ret;
+		goto end;
 	}
 
 	printk("do_ptree: stated\n");
@@ -73,7 +73,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 
 	printk("do_ptree: copy from nr\n");
 	if (copy_from_user(&k_nr, nr, sizeof(k_nr)))
-		return ret;
+		goto end;
 	printk("do_ptree: copied from nr, value is %d\n", k_nr);
 
 	printk("do_ptree: kmalloc buf\n");
@@ -99,6 +99,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 end_free:
 	printk("do_ptree: free buf\n");
 	kfree(k_buf);
+end:
 	printk("do_ptree: end\n");
 	return ret;
 }
