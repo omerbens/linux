@@ -74,6 +74,13 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 	if (!is_ptree_set()) {
 		printk("do_ptree: trying to request module\n");
 		request_module(my_module);
+
+		// check again (if after request module, ptree func is still not set)
+		if (!is_ptree_set()) {
+			printk("do_ptree: no ptree func registerd after requesting module\n");
+			ret = -ENOSYS;
+			goto end;
+		}
 	}
 
 	printk("do_ptree: copy from nr\n");
