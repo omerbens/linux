@@ -3,7 +3,7 @@
 #include "ptree.h"
 
 static DEFINE_SPINLOCK(ptree_func_lock);
-static ptree_func ptree_func_ptr = NULL;
+static ptree_func_t ptree_func_ptr = NULL;
 
 int register_ptree(ptree_func func)
 {
@@ -29,6 +29,7 @@ void unregister_ptree(ptree_func func)
 
 int safe_ptree(struct prinfo *buf, int *nr, int pid) {
 	int ret = -ENOSYS;
+
 	spin_lock(&ptree_func_lock);
 	if (NULL == ptree_func_ptr) {
 		printk("do_ptree: no ptree func registerd\n");
@@ -41,12 +42,14 @@ end:
 }
 
 // validate value for time getting
-ptree_func get_safe_ptr() {
-	ptree_func foo;
+int is_ptree_set() {
+	int ret = 0;
 	spin_lock(&ptree_func_lock);
-	foo = ptree_func_ptr(buf, nr, pid)
+	if (NULL == get_safe_ptr()) {
+		ret = 1;
+	}
 	spin_unlock(&ptree_func_lock);
-	return foo;
+	return ret;
 }
 
 int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
@@ -61,13 +64,13 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		goto end;
 	}
 
-	if (0 == access_ok(nr, sizeof(int)) || 0 == access_ok(buf, sizeof())) {
+	if (0 == access_ok(*nr, sizeof(int)) || 0 == access_ok(*buf, sizeof())) {
 		goto end;
 	}
 
 	printk("do_ptree: stated\n");
 
-	if (NULL == get_safe_ptr()) {
+	if (1 == is_ptree_set()) {
 		printk("do_ptree: trying to request module\n");
 		request_module(my_module);
 	}
