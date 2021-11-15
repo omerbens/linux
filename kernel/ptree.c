@@ -27,67 +27,78 @@ void unregister_ptree(ptree_func func)
 	return;
 }
 
+int safe_ptree(struct prinfo *buf, int *nr, int pid) {
+	int ret = -ENOSYS;
+	spin_lock(&ptree_func_lock);
+	if (NULL == ptree_func_ptr) {
+		printk("do_ptree: no ptree func registerd\n");
+		return ret;
+	}
+	ret = ptree_func_ptr(buf, nr, pid)
+	spin_unlock(&ptree_func_lock);
+	return ret;
+}
+
+// validate value for time getting
+ptree_func get_safe_ptr() {
+	ptree_func foo;
+	spin_lock(&ptree_func_lock);
+	foo = ptree_func_ptr(buf, nr, pid)
+	spin_unlock(&ptree_func_lock);
+	return foo;
+}
+
 int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 {
-	int ret = 0;
+	int ret = -EFAULT;
 	int k_nr;
 	struct prinfo *k_buf = NULL;
 	const char *my_module = "simple";
 
+	if (NULL == buf || NULL == nr || 1 > *nr) {
+		ret = -EINVAL;
+		return ret;
+	}
+
+	if (0 == access_ok(nr, sizeof(int)) || 0 == access_ok(buf, sizeof())) {
+		return ret;
+	}
+
 	printk("do_ptree: stated\n");
-	spin_lock(&ptree_func_lock);
 
-	if (NULL != ptree_func_ptr) {
-		goto func_registerd;
+	if (NULL == get_safe_ptr()) {
+		printk("do_ptree: trying to request module\n");
+		request_module(my_module);
 	}
 
-	spin_unlock(&ptree_func_lock);
-	printk("do_ptree: trying to request module\n");
-	request_module(my_module);
-	spin_lock(&ptree_func_lock);
-
-	if (NULL == ptree_func_ptr) {
-		printk("do_ptree: no ptree func registerd\n");
-		ret = -ENOSYS;
-		goto end;
-	}
-
-func_registerd:
 	printk("do_ptree: copy from nr\n");
 	if (copy_from_user(&k_nr, nr, sizeof(k_nr)))
-		goto end_fault;
+		return ret;
 	printk("do_ptree: copied from nr, value is %d\n", k_nr);
 
 	printk("do_ptree: kmalloc buf\n");
 	k_buf = kmalloc(k_nr * sizeof(*k_buf), GFP_KERNEL);
 	if (NULL == k_buf)
-		goto end_fault;
+		goto end_free;
 
 	printk("do_ptree: calling func with nr of %d\n", k_nr);
-	ret = ptree_func_ptr(k_buf, &k_nr, pid);
+	ret = safe_ptree(k_buf, &k_nr, pid);
 	printk("do_ptree: calling func finished with nr of %d\n", k_nr);
 
 	printk("do_ptree: copy to buf\n");
 	if (copy_to_user(buf, k_buf, k_nr * sizeof(*k_buf)))
-		goto end_fault_free;
+		goto end_free;
 
 	printk("do_ptree: copy to nr\n");
 	if (copy_to_user(nr, &k_nr, sizeof(k_nr)))
-		goto end_fault_free;
+		goto end_free;
 
 	printk("do_ptree: job done\n");
 	goto end_free;
 
-end_fault:
-	ret = -EFAULT;
-	goto end;
-end_fault_free:
-	ret = -EFAULT;
 end_free:
 	printk("do_ptree: free buf\n");
 	kfree(k_buf);
-end:
-	spin_unlock(&ptree_func_lock);
 	printk("do_ptree: end\n");
 	return ret;
 }
