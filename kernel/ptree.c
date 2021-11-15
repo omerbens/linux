@@ -45,7 +45,8 @@ end:
 int is_ptree_set() {
 	int ret = 0;
 	spin_lock(&ptree_func_lock);
-	if (NULL == ptree_func_ptr) {
+	if (NULL != ptree_func_ptr) {
+		// ptree is set (not null)
 		ret = 1;
 	}
 	spin_unlock(&ptree_func_lock);
@@ -70,7 +71,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 
 	printk("do_ptree: stated\n");
 
-	if (1 == is_ptree_set()) {
+	if (!is_ptree_set()) {
 		printk("do_ptree: trying to request module\n");
 		request_module(my_module);
 	}
