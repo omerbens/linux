@@ -32,9 +32,10 @@ int safe_ptree(struct prinfo *buf, int *nr, int pid) {
 	spin_lock(&ptree_func_lock);
 	if (NULL == ptree_func_ptr) {
 		printk("do_ptree: no ptree func registerd\n");
-		return ret;
+		goto end;
 	}
 	ret = ptree_func_ptr(buf, nr, pid)
+end:
 	spin_unlock(&ptree_func_lock);
 	return ret;
 }
