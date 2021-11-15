@@ -63,7 +63,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		goto end;
 	}
 
-	if (0 == access_ok(nr, sizeof(*nr)) || 0 == access_ok(buf, (*nr) * sizeof(*buf))) {
+	if (!access_ok(nr, sizeof(*nr)) || !access_ok(buf, (*nr) * sizeof(*buf))) {
 		goto end;
 	}
 
