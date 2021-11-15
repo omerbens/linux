@@ -58,16 +58,12 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 	struct prinfo *k_buf = NULL;
 	const char *my_module = "simple";
 
-	if (NULL == buf || NULL == nr || 1 > *nr) {
+	printk("do_ptree: stated\n");
+
+	if (NULL == buf || NULL == nr) {
 		ret = -EINVAL;
 		goto end;
 	}
-
-	if (!access_ok(nr, sizeof(*nr)) || !access_ok(buf, (*nr) * sizeof(*buf))) {
-		goto end;
-	}
-
-	printk("do_ptree: stated\n");
 
 	if (!is_ptree_set()) {
 		printk("do_ptree: trying to request module\n");
@@ -81,10 +77,16 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		}
 	}
 
+	if (!access_ok(nr, sizeof(*nr)))
+		goto end;
+
 	printk("do_ptree: copy from nr\n");
 	if (copy_from_user(&k_nr, nr, sizeof(k_nr)))
 		goto end;
 	printk("do_ptree: copied from nr, value is %d\n", k_nr);
+
+	if(1 > k_nr || !access_ok(buf, k_nr * sizeof(*buf)))
+		goto end;
 
 	printk("do_ptree: kmalloc buf\n");
 	k_buf = kmalloc(k_nr * sizeof(*k_buf), GFP_KERNEL);
