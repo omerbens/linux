@@ -73,6 +73,9 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 		goto end;
 	printk("do_ptree: copied from nr, value is %d\n", k_nr);
 
+	// checking that that k_nr is bigger than 1
+	// checking that calculated size of buf didn't cause buffer overflow
+	//	the minimum size of multiplication on x and y (when y>=1) is x.
 	if(1 > k_nr || sizeof(*buf) > (k_nr * sizeof(*buf)))
 		goto end
 
