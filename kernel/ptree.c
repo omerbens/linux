@@ -5,7 +5,7 @@
 static DEFINE_SPINLOCK(ptree_func_lock);
 static ptree_func_t ptree_func_ptr = NULL;
 
-int register_ptree(ptree_func func)
+int register_ptree(ptree_func_t func)
 {
 	int ret = -EBUSY;
 
@@ -19,7 +19,7 @@ end:
 	return ret;
 }
 
-void unregister_ptree(ptree_func func)
+void unregister_ptree(ptree_func_t func)
 {
 	spin_lock(&ptree_func_lock);
 	ptree_func_ptr = NULL;
