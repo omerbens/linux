@@ -33,14 +33,14 @@ int safe_ptree(struct prinfo *buf, int *nr, int pid) {
 	spin_lock(&ptree_func_lock);
 	if (NULL == ptree_func_ptr)
 		goto end;
-	ret = ptree_func_ptr(buf, nr, pid)
+	ret = ptree_func_ptr(buf, nr, pid);
 end:
 	spin_unlock(&ptree_func_lock);
 	return ret;
 }
 
 // validate value for time getting
-int is_ptree_set() {
+int is_ptree_set(void) {
 	int ret = 0;
 	spin_lock(&ptree_func_lock);
 	if (NULL != ptree_func_ptr) {
@@ -77,7 +77,7 @@ int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
 	// checking that calculated size of buf didn't cause buffer overflow
 	//	the minimum size of multiplication on x and y (when y>=1) is x.
 	if(1 > k_nr || sizeof(*buf) > (k_nr * sizeof(*buf)))
-		goto end
+		goto end;
 
 	if (!access_ok(buf, k_nr * sizeof(*buf)))
 		goto end;
