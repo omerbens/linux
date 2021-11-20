@@ -27,99 +27,53 @@ void unregister_func(my_func_t func)
 	return;
 }
 
-//int safe_ptree(struct prinfo *buf, int *nr, int pid) {
-//	int ret = -ENOSYS;
-//
-//	spin_lock(&func_lock);
-//	if (NULL == func_ptr)
-//		goto end;
-//	ret = func_ptr(buf, nr, pid)
-//end:
-//	spin_unlock(&func_lock);
-//	return ret;
-//}
+int safe_mapspages(unsigned long start, unsigned long end, char *buf, size_t size) {
+	int ret = -ENOSYS;
 
-// validate value for time getting
-//int is_ptree_set() {
-//	int ret = 0;
-//	spin_lock(&func_lock);
-//	if (NULL != my_func_ptr) {
-//		// ptree is set (not null)
-//		ret = 1;
-//	}
-//	spin_unlock(&func_lock);
-//	return ret;
-//}
+	spin_lock(&func_lock);
+	if (NULL == func_ptr)
+		goto end;
+	ret = func_ptr(start, end, buf, size);
+end:
+	spin_unlock(&func_lock);
+	return ret;
+}
 
-//int do_ptree(struct prinfo __user *buf, int __user *nr, int pid)
-//{
-//	int ret = -EFAULT;
-//	int k_nr;
-//	struct prinfo *k_buf = NULL;
-//	const char *my_module = "simple";
-//
-//	printk("do_ptree: stated\n");
-//
-//	if (NULL == buf || NULL == nr) {
-//		ret = -EINVAL;
-//		goto end;
-//	}
-//
-//	if (!access_ok(nr, sizeof(*nr)))
-//		goto end;
-//
-//	printk("do_ptree: copy from nr\n");
-//	if (copy_from_user(&k_nr, nr, sizeof(k_nr)))
-//		goto end;
-//	printk("do_ptree: copied from nr, value is %d\n", k_nr);
-//
-//	// checking that that k_nr is bigger than 1
-//	// checking that calculated size of buf didn't cause buffer overflow
-//	//	the minimum size of multiplication on x and y (when y>=1) is x.
-//	if(1 > k_nr || sizeof(*buf) > (k_nr * sizeof(*buf)))
-//		goto end
-//
-//	if (!access_ok(buf, k_nr * sizeof(*buf)))
-//		goto end;
-//
-//	if (!is_ptree_set()) {
-//		printk("do_ptree: trying to request module\n");
-//		request_module(my_module);
-//
-//		// check again (if after request module, ptree func is still not set)
-//		if (!is_ptree_set()) {
-//			printk("do_ptree: no ptree func registerd after requesting module\n");
-//			ret = -ENOSYS;
-//			goto end;
-//		}
-//	}
-//
-//	printk("do_ptree: kmalloc buf\n");
-//	k_buf = kmalloc(k_nr * sizeof(*k_buf), GFP_KERNEL);
-//	if (NULL == k_buf)
-//		goto end;
-//
-//	printk("do_ptree: calling func with nr of %d\n", k_nr);
-//	ret = safe_ptree(k_buf, &k_nr, pid);
-//	printk("do_ptree: calling func finished with nr of %d\n", k_nr);
-//
-//	printk("do_ptree: copy to buf\n");
-//	if (copy_to_user(buf, k_buf, k_nr * sizeof(*k_buf)))
-//		goto end_free;
-//
-//	printk("do_ptree: copy to nr\n");
-//	if (copy_to_user(nr, &k_nr, sizeof(k_nr)))
-//		goto end_free;
-//
-//	printk("do_ptree: job done\n");
-//
-//end_free:
-//	printk("do_ptree: free buf\n");
-//	kfree(k_buf);
-//end:
-//	printk("do_ptree: end\n");
-//	return ret;
-//}
+int do_mapspages(unsigned long start, unsigned long end, char __user *buf, size_t size)
+{
+	int ret = -EFAULT;
+	char * kbuf;
+
+	printk("do_mapspages: stated\n");
+
+	if (NULL == buf || start > end) {
+		ret = -EINVAL;
+		goto end;
+	}
+
+	if (!access_ok(buf, size))
+		goto end;
+
+	printk("do_mapspages: kmalloc buf\n");
+	k_buf = kmalloc(size, GFP_KERNEL);
+	if (NULL == k_buf)
+		goto end;
+
+	printk("do_mapspages: calling func with size of %d\n", size);
+	ret = safe_ptree(start, end, k_buf, size);
+	printk("do_mapspages: calling func finished with ret of %d\n", ret);
+
+	printk("do_mapspages: copy to buf\n");
+	if (copy_to_user(buf, k_buf, ret))
+		goto end_free;
+
+end_free:
+	printk("do_mapspages: free buf\n");
+	kfree(k_buf);
+end:
+	printk("do_mapspages: end\n");
+	return ret;
+}
 
 EXPORT_SYMBOL(register_func);
 EXPORT_SYMBOL(unregister_func);
