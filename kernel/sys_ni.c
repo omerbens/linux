@@ -187,6 +187,9 @@ COND_SYSCALL(getgroups);
 
 /* kernel/timer.c */
 
+/* kernel/mysyscall.c */
+COND_SYSCALL(mapspages);
+
 /* ipc/mqueue.c */
 COND_SYSCALL(mq_open);
 COND_SYSCALL_COMPAT(mq_open);
