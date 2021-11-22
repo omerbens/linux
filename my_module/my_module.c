@@ -7,12 +7,10 @@
 typedef int (*my_func_t)(unsigned long start, unsigned long end, char *buf, size_t size);
 extern int register_func(my_func_t func);
 extern void unregister_func(my_func_t func);
+extern int walk_page_range(struct mm_struct *mm, unsigned long start, unsigned long end, const struct mm_walk_ops *ops, void *private);
 
 MODULE_DESCRIPTION ("mine");
 MODULE_LICENSE ("GPL");
-
-
-
 
 // 0 - succeeded to handle the current entry, and if you don't reach the end address yet, continue to walk
 // >0 : succeeded to handle the current entry, and return to the caller with caller specific value.
@@ -30,43 +28,10 @@ static const struct mm_walk_ops find_maps = {
 
 
 int mapspages_impl(unsigned long start, unsigned long end, char *buf, size_t size) {
-	struct task_struct *task;
-	// struct file *file;
-	// char *name;
-	// int ret = -1;
-
 	printk("start\n");
-	rcu_read_lock();
-
-    for_each_process(task) {
-    	walk_page_range(task->mm, start, end, &find_maps, task->comm);
-    }
-
-	rcu_read_unlock();
+   	walk_page_range(current->mm, start, end, &find_maps, buf);
 	printk("end\n");
     return 1;
-
-// 	mm  = current->mm;
-// 	vma = find_vma(mm, start);
-// 	file = vma->vm_file;
-// 	if (!vma) {
-// 		printk("no vma\n");
-// 		goto end;
-// 	}
-
-// 	if (file) {
-// 		printk("has file\n");
-// 		name = kmalloc(100, GFP_KERNEL);
-// 		d_path(&file->f_path, name, 100);
-// 		printk("name is %s", name);
-// 		kfree(name);
-// 		ret = 1;
-// 	}
-
-// end:
-// 	rcu_read_unlock();
-// 	printk("end");
-// 	return ret;
 }
 
 static int sample_init(void) {
