@@ -7,18 +7,36 @@
 typedef int (*my_func_t)(unsigned long start, unsigned long end, char *buf, size_t size);
 extern int register_func(my_func_t func);
 extern void unregister_func(my_func_t func);
-extern int walk_page_range(struct mm_struct *mm, unsigned long start, unsigned long end, const struct mm_walk_ops *ops, void *private);
 
 MODULE_DESCRIPTION ("mine");
 MODULE_LICENSE ("GPL");
 
-// 0 - succeeded to handle the current entry, and if you don't reach the end address yet, continue to walk
-// >0 : succeeded to handle the current entry, and return to the caller with caller specific value.
-// <0 : failed to handle the current entry, and return to the caller with error code.
 static int format_map(pmd_t *pmd, unsigned long addr, unsigned long end, struct mm_walk *walk) {
-	char *comm = (char *) walk->private;
-	// struct vm_area_struct *vma = walk->vma;
-	printk("%s\n", comm);
+	struct vm_area_struct *vma = walk->vma;
+	// char *buf = (char *) walk->private;
+	// struct mm_struct *mm = vma->vm_mm;
+	struct file *file = vma->vm_file;
+	vm_flags_t flags = vma->vm_flags;
+	unsigned long ino = 0;
+	unsigned long long pgoff = 0;
+	unsigned long start_addr, end_addr;
+	dev_t dev = 0;
+
+	
+	if (file) {
+		struct inode *inode = file_inode(vma->vm_file);
+		dev = inode->i_sb->s_dev;
+		ino = inode->i_ino;
+		pgoff = ((loff_t)vma->vm_pgoff) << PAGE_SHIFT;
+	}
+
+	start_addr = vma->vm_start;
+	end_addr = vma->vm_end;
+
+	printk("%012lx-%012lx %c%c%c%c %#08llx %02x:%02x %-26ld <details>\n",
+		start_addr, end_addr,
+		flags & VM_READ ? 'r' : '-', flags & VM_WRITE ? 'w' : '-', flags & VM_EXEC ? 'x' : '-',  flags & VM_MAYSHARE ? 's' : 'p',
+		pgoff, MAJOR(dev), MINOR(dev), ino);
 	return 0;
 }
 

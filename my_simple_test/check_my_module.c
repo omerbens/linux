@@ -31,4 +31,8 @@ int main(int argc, char **argv)
 
 	char *c = malloc(2);
 	printf("syscall end with: %d\n", syscall_mapspages(start, end, c, 2));
+
+	printf("sleeping");
+	sleep(300);
+	printf("done sleeping");
 }
