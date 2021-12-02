@@ -11,6 +11,7 @@
 
 #define SYSCALL_NUM 449
 #define STARTING_LEN 500
+#define PAGE_SIZE sysconf(_SC_PAGESIZE)
 
 int syscall_mapspages(unsigned long start, unsigned long end, char *buf, size_t size) {
 	int ret;
@@ -43,39 +44,113 @@ void print_maps(unsigned long start, unsigned long end) {
 	}
 	
 }
+int is_all_zero(int actions[], unsigned int len) {
+	for (int i=0; i<len; i++)
+		if (actions[i] != 0)
+			return 0;
+	return 1;
+}
 
-void generic(int testnum, char *s, int check_mmap) {
-	long PAGE_SIZE = sysconf(_SC_PAGESIZE);
+// Its doesnt work yet like expeceted.
+int action_on_pages(char *ptr, int actions[], unsigned int len) {
+	printf("start action with len(%d), and arr: %d %d %d\n", len, actions[0],  actions[1],  actions[2]);
+
+	if (1 == is_all_zero(actions, len)) {
+		printf("done\n");
+		return 1;
+	}
+
+	for (int i=0; i<len; i++) {
+		if (actions[i] == 0){
+			printf("	nothing\n");
+			continue;
+		}
+		if (actions[i] == 1){
+			printf("	locking (%d)\n", actions[i]);
+			mlock(&ptr[PAGE_SIZE*i], PAGE_SIZE);
+			actions[i] = 0;
+			continue;
+		}
+		if (actions[i] == 2){
+			printf("	writing (%d)\n", actions[i]);
+			ptr[PAGE_SIZE*i] = 0;
+			actions[i] = 0;
+			continue;
+		}
+		if (actions[i] >= 2){
+			printf("	writing (%d)\n", actions[i]);
+			ptr[PAGE_SIZE*i] = 1;
+			actions[i]=actions[i]-1;
+			continue;
+		}
+	}
+
+	if (1 == is_all_zero(actions, len)) {
+		printf("done\n");
+		return 1;
+	}
+
+	int pid = fork();
+	if (-1 == pid) {
+		printf("fork failed\n");
+		return 0;
+	}
+	if (pid > 0)
+	{
+		// father - wait for child
+		printf("	father - waits\n");
+		while (wait(NULL) > 0);
+		printf("	father - end\n");
+		exit(0);
+	}
+	// child continue
+	printf("	child - continuing\n");
+
+	return action_on_pages(ptr, actions, len);
+}
+
+
+
+void generic(int testnum, char *s) {
+	printf("start\n");
 	int len = (int) strlen(s);
 	char *ptr;
 
 	ptr = mmap(0, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-	if (1 == check_mmap && ptr == MAP_FAILED) {
+	if (ptr == MAP_FAILED) {
 		perror("failed mmap");
 		return;
 	}
 
+	int *actions =  malloc(len * sizeof(int));
+	if (NULL == malloc) {
+		printf("failed malloc\n");
+		return;
+	}
 	for (int i=0; i<len; i++) {
-		switch (s[i])
-		{
-			case '.':
-				break;
-			case '1':
-				mlock(&ptr[PAGE_SIZE*i], PAGE_SIZE);
-		    		break;
-			case '2':
-				ptr[PAGE_SIZE*i] = '0';
-				break;
-			// TODO 3-X
-			default:
-				printf("unkown value: %c\n", s[i]);
-				return;
+		if ('.' == s[i])
+			actions[i] = 0;
+		else if ('0' <= s[i] && '9' >= s[i])
+			actions[i] = s[i]-'0';
+		else if ('X' == s[i])
+			actions[i] = 10;
+		else {
+			printf("unkown value: %c\n", s[i]);
+			return;
 		}
 	}
-	printf("test%d \"%s\"\n", testnum, s);
+
+	printf("calling action with: %d %d %d\n", actions[0],  actions[1],  actions[2]);
+	int ret = action_on_pages(ptr, actions, len);
+	if (1 != ret) {
+		printf("failed to action_on_pages\n");
+		return;
+	}
+
+	printf("\ntest%d \"%s\"\n", testnum, s);
 	print_maps((unsigned long) ptr, (unsigned long)(ptr+PAGE_SIZE*len));
-	
-	if (1 == check_mmap && -1 == munmap(ptr, PAGE_SIZE*len))
+
+	if (-1 == munmap(ptr, PAGE_SIZE*len))
 		printf("failed to munmap\n");
 }
 
@@ -95,45 +170,37 @@ void main(int argc, char **argv) {
 	}
 	for (int i=0; i<2000; i++) {test6[i]='.';}
 
-	char *test9 = malloc(9999999);
-	if (NULL == test9){
-		printf("failed malloc");
-		return;
-	}
-	for (int i=0; i<9999998; i++) {test9[i]='.';}
-
-
 	switch (argv[1][0])
 	{
 		case '1':
-			generic(1, "..........", 1);
+			generic(1, "..........");
 			break;
 		case '2':		
-			generic(2, "1111111111", 1);
+			generic(2, "1111111111");
 	    		break;
 		case '3':
-			generic(3, ".1.1.1.1.1", 1);
+			generic(3, ".1.1.1.1.1");
 			break;
 		case '4':
-			generic(4, "22222.....", 1);
+			generic(4, "22222.....");
 			break;
 		case '5':
-			generic(5, "1111..2222", 1);
+			generic(5, "1111..2222");
 			break;
 		case '6':
-			generic(6, test6, 1);
+			generic(6, test6);
 			break;
 		case '7':
 			// TODO: stack
 			break;
 		case '8':
 			if (3 == argc)
-				generic(8, argv[2], 1);
+				generic(8, argv[2]);
 			else
 				printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
 			break;
 		case '9':
-			generic(9, test9, 0);
+			// TODO: OOM
 			break;
 		default:
 			printf("unkown digit_test_num: %s\n", argv[1]);
@@ -141,6 +208,5 @@ void main(int argc, char **argv) {
 	}
 
 	free(test6);
-	free(test9);
 }
 
