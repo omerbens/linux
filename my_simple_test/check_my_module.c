@@ -56,7 +56,7 @@ int is_all_zero(int actions[], unsigned int len) {
 // NOTE - Its doesnt work like expeceted yet.
 // ********************************************
 int action_on_pages(char *ptr, int actions[], unsigned int len) {
-	printf("start action with len(%d), and arr: %d %d %d\n", len, actions[0],  actions[1],  actions[2]);
+	printf("start action with len %d\n", len);
 
 	if (1 == is_all_zero(actions, len)) {
 		printf("done\n");
@@ -80,7 +80,7 @@ int action_on_pages(char *ptr, int actions[], unsigned int len) {
 			actions[i] = 0;
 			continue;
 		}
-		if (actions[i] >= 2){
+		if (actions[i] > 2){
 			printf("	writing (%d)\n", actions[i]);
 			ptr[PAGE_SIZE*i] = 1;
 			actions[i]=actions[i]-1;
@@ -101,13 +101,13 @@ int action_on_pages(char *ptr, int actions[], unsigned int len) {
 	if (pid > 0)
 	{
 		// father - wait for child
-		printf("	father - waits\n");
+		printf("	after fork - father - waits\n");
 		while (wait(NULL) > 0);
-		printf("	father - end\n");
+		printf("	after fork - father - end\n");
 		exit(0);
 	}
 	// child continue
-	printf("	child - continuing\n");
+	printf("	after fork - child - continue running...\n");
 
 	return action_on_pages(ptr, actions, len);
 }
@@ -143,7 +143,6 @@ void generic(int testnum, char *s) {
 		}
 	}
 
-	printf("calling action with: %d %d %d\n", actions[0],  actions[1],  actions[2]);
 	int ret = action_on_pages(ptr, actions, len);
 	if (1 != ret) {
 		printf("failed to action_on_pages\n");
