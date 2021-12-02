@@ -53,7 +53,7 @@ int is_all_zero(int actions[], unsigned int len) {
 }
 
 // ********************************************
-// NOTE - Its doesnt work yet like expeceted.
+// NOTE - Its doesnt work like expeceted yet.
 // ********************************************
 int action_on_pages(char *ptr, int actions[], unsigned int len) {
 	printf("start action with len(%d), and arr: %d %d %d\n", len, actions[0],  actions[1],  actions[2]);
