@@ -74,7 +74,7 @@ static int format_map(pmd_t *pmd, unsigned long addr, unsigned long end, struct 
 
 	// checking enough space
 	// single line is 73 (with padding) + 1 for end of line (\n)
-	// every page is 1 char, number of pages is {(end_addr-start_addr) / 4096}
+	// every page is 1 char, number of pages is {(end_addr-start_addr) / PAGE_SIZE}
 	if (w->size - w->index < (end_addr-start_addr)/4096 + 74) {
 		// doing a trick to inform that no space left
 		// padding extra data with zeros
@@ -113,7 +113,11 @@ int mapspages_impl(unsigned long start, unsigned long end, char *buf, size_t siz
 	w.buf = buf;
 	w.index = 0;
 	w.size = size;
+
+	if (1 != down_read_trylock(&current->mm->mmap_sem))
+		return -1;
 	walk_page_range(current->mm, start, end, &page_range_ops, &w);
+	up_read(&current->mm->mmap_sem);
 
 	printk("end\n");
     return w.index;
