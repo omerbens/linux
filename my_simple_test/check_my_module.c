@@ -51,7 +51,9 @@ int is_all_zero(int actions[], unsigned int len) {
 	return 1;
 }
 
-// Its doesnt work yet like expeceted.
+// ********************************************
+// NOTE - Its doesnt work yet like expeceted.
+// ********************************************
 int action_on_pages(char *ptr, int actions[], unsigned int len) {
 	printf("start action with len(%d), and arr: %d %d %d\n", len, actions[0],  actions[1],  actions[2]);
 
@@ -156,19 +158,12 @@ void generic(int testnum, char *s) {
 
 void main(int argc, char **argv) {
 	char *c;
+	char *tmp;
 
 	if (argc > 3 || argc == 1 || strlen(argv[1]) != 1) {
 		printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
 		return;
 	}
-
-	// for test6
-	char *test6 = malloc(2001);
-	if (NULL == test6){
-		printf("failed malloc");
-		return;
-	}
-	for (int i=0; i<2000; i++) {test6[i]='.';}
 
 	switch (argv[1][0])
 	{
@@ -188,10 +183,19 @@ void main(int argc, char **argv) {
 			generic(5, "1111..2222");
 			break;
 		case '6':
-			generic(6, test6);
+			tmp = malloc(2001);
+			if (NULL == tmp) {
+				printf("failed\n");
+				return;
+			}
+			for (int i=0; i<2000; i++) {tmp[i]='.';}
+			generic(6, tmp);
+			free(tmp);
 			break;
 		case '7':
-			// TODO: stack
+			// ********************************************
+			// Todo stack
+			// ********************************************
 			break;
 		case '8':
 			if (3 == argc)
@@ -200,13 +204,21 @@ void main(int argc, char **argv) {
 				printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
 			break;
 		case '9':
-			// TODO: OOM
+			// ********************************************
+			// NOTE - Not working perfectly yet - Bad address is returned instead of OOM kill.
+			// ********************************************
+
+			tmp = malloc(1999999999);
+			if (NULL == tmp) {
+				printf("failed\n");
+				return;
+			}
+			syscall_mapspages(0x0, 0xfffffffffff, tmp, 1999999999);
+			free(tmp);
 			break;
 		default:
 			printf("unkown digit_test_num: %s\n", argv[1]);
 			break;
 	}
-
-	free(test6);
 }
 
