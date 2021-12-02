@@ -156,6 +156,36 @@ void generic(int testnum, char *s) {
 		printf("failed to munmap\n");
 }
 
+void print_stack(int fork_times) {
+	unsigned long start, end;
+	FILE *cmd = popen("cat /proc/$(pgrep check)/maps | grep \"\\[stack\\]\" | awk '{print $1}' | tr '-' '\n'", "r");
+	if (NULL == cmd) {
+		printf("failed popen");
+		return;
+	}
+	if (!fscanf(cmd, "%lx%lx", &start, &end)){
+		printf("failed scanf");
+		return;
+	}
+
+	for (int i=0; i<fork_times; i++) {
+		int pid = fork();
+		if (-1 == pid) {
+			return;
+		}
+		if (pid > 0)
+		{
+			// father - wait for child
+			while (wait(NULL) > 0);
+			exit(0);
+		}
+		// child continue
+	}
+
+	print_maps(start, end);
+}
+
+
 void main(int argc, char **argv) {
 	char *c;
 	char *tmp;
@@ -196,6 +226,8 @@ void main(int argc, char **argv) {
 			// ********************************************
 			// Todo stack
 			// ********************************************
+			print_stack(1000);
+			sleep(20);
 			break;
 		case '8':
 			if (3 == argc)
@@ -204,17 +236,7 @@ void main(int argc, char **argv) {
 				printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
 			break;
 		case '9':
-			// ********************************************
-			// NOTE - Not working perfectly yet - Bad address is returned instead of OOM kill.
-			// ********************************************
-
-			tmp = malloc(1999999999);
-			if (NULL == tmp) {
-				printf("failed\n");
-				return;
-			}
-			syscall_mapspages(0x0, 0xfffffffffff, tmp, 1999999999);
-			free(tmp);
+			print_stack(1000000);
 			break;
 		default:
 			printf("unkown digit_test_num: %s\n", argv[1]);
