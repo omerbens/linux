@@ -5,6 +5,7 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <string.h>
 
@@ -13,13 +14,13 @@
 
 int syscall_mapspages(unsigned long start, unsigned long end, char *buf, size_t size) {
 	int ret;
-	printf("addresses values are %#lx and %#lx (length is: %#lx or %ld)\n", start, end, end-start, (end-start)/sysconf(_SC_PAGESIZE));
+	printf("	addresses values are %#lx and %#lx (length is: %#lx or %ld)\n", start, end, end-start, (end-start)/sysconf(_SC_PAGESIZE));
         ret = syscall(SYSCALL_NUM, start, end, buf, size);
         if (0 > ret){
                 perror("Failed with");
 		return -1;
 	}
-	printf("return value is %d\n", ret);
+	printf("	return value is %d\n", ret);
         return ret;
 }
 
@@ -36,36 +37,25 @@ void print_maps(unsigned long start, unsigned long end) {
 			buffer_length *= 2;
 			continue;
 		}
-		printf("output is:\n%s\n\n", c);
+		printf("	output is:\n%s\n\n", c);
 		free(c);
 		return;
 	}
 	
 }
 
-void test8(char *s) {
+void generic(int testnum,char *s) {
 	unsigned long addr;
 	long PAGE_SIZE = sysconf(_SC_PAGESIZE);
-	int fd;
+	int pid, wpid, status;
 	int len = (int) strlen(s);
-	char *ptr;
+	char *ptr, *ptr2;
 
-	fd = open("/tmp/test", O_RDONLY|O_CLOEXEC);
-	if (0 > fd) {
-		perror("failed open file");
-		return;
-	}
-	// for (int i=0; i<PAGE_SIZE*len; i++){
-		// write(fd, "1", 1);	
-	// }
-
-	addr = (unsigned long) mmap(0, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
+	addr = (unsigned long) mmap(0, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 	if ((void*)addr == MAP_FAILED) {
 		perror("failed mmap");
-		close(fd);
 		return;
 	}
-	close(fd);
 
 	ptr = (char*) addr;
 	for (int i=0; i<len; i++) {
@@ -74,10 +64,9 @@ void test8(char *s) {
 			case '.':
 				break;
 			case '1':
-		    		mlock((void*)(&ptr[PAGE_SIZE*i]), 1);
+				ptr[PAGE_SIZE*i] = '0';
 		    		break;
 			case '2':
-		    		ptr[PAGE_SIZE*i] = '0';
 				break;
 			default:
 				printf("unkown value: %c\n", s[i]);
@@ -85,6 +74,7 @@ void test8(char *s) {
 		}
 	}
 
+	printf("test%d \"%s\"\n", testnum, s);
 	print_maps(addr, addr+PAGE_SIZE*len);
 	munmap((void*)addr, PAGE_SIZE*len);
 }
@@ -96,7 +86,20 @@ void main(int argc, char **argv) {
 		printf("usage: check <wanted_str>\n");
 		return;
 	}
-	test8(argv[1]);
+
+	generic(1, "..........");
+
+	generic(2, "1111111111");
+
+	generic(3, ".1.1.1.1.1");
+
+	generic(4, "22222.....");
+
+	generic(5, "1111..2222");
+
+	generic(6, "1111..2222");
+
+	generic(8, argv[1]);
 	sleep(20);
 }
 
