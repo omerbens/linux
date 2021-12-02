@@ -3,14 +3,17 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
 
 #define SYSCALL_NUM 449
 #define STARTING_LEN 500
-#define PAGE_SIZE 4096
 
 int syscall_mapspages(unsigned long start, unsigned long end, char *buf, size_t size) {
 	int ret;
-	printf("addresses values are %#lx and %#lx (length is: %#lx or %ld pages)\n", start, end, end-start, (end-start)/PAGE_SIZE);
+	printf("addresses values are %#lx and %#lx (length is: %#lx or %ld)\n", start, end, end-start, (end-start)/sysconf(_SC_PAGESIZE));
         ret = syscall(SYSCALL_NUM, start, end, buf, size);
         if (0 > ret){
                 perror("Failed with");
@@ -20,7 +23,7 @@ int syscall_mapspages(unsigned long start, unsigned long end, char *buf, size_t 
         return ret;
 }
 
-void print_increasing_mapspages(unsigned long start, unsigned long end) {
+void print_maps(unsigned long start, unsigned long end) {
 	unsigned int buffer_length = STARTING_LEN;
 	int ret;
 	char *c;
@@ -40,44 +43,60 @@ void print_increasing_mapspages(unsigned long start, unsigned long end) {
 	
 }
 
-int cmd_program(int argc, char **argv) {
-	unsigned long start, end;
-	char *c;
-
-	if (argc < 3 || argc > 4) {
-		printf("usage: check <start> <end>\n");
-		return -1;
-	}
-
-	start = (unsigned long) strtol(argv[1], NULL, 16);
-	end = (unsigned long) strtol(argv[2], NULL, 16);
-
-	print_increasing_mapspages(start, end);
-	return 1;
-}
-
-int main() {
-	char *c;
+void test8(char *s) {
 	unsigned long addr;
-	int len;
+	long PAGE_SIZE = sysconf(_SC_PAGESIZE);
+	int fd;
+	int len = (int) strlen(s);
+	char *ptr;
 
-	len = 10;
-	addr = (unsigned long) mmap(NULL, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	fd = open("/tmp/test", O_RDONLY|O_CLOEXEC);
+	if (0 > fd) {
+		perror("failed open file");
+		return;
+	}
+	// for (int i=0; i<PAGE_SIZE*len; i++){
+		// write(fd, "1", 1);	
+	// }
+
+	addr = (unsigned long) mmap(0, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
 	if ((void*)addr == MAP_FAILED) {
 		perror("failed mmap");
-		return 1;
+		close(fd);
+		return;
 	}
-	print_increasing_mapspages(addr, addr+PAGE_SIZE*len);
-	munmap((void*)addr, PAGE_SIZE*len);
+	close(fd);
 
-
-
-	len = 10;
-	addr = (unsigned long) mmap(NULL, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS | MAP_LOCKED, -1, 0);
-	if ((void*)addr == MAP_FAILED) {
-		perror("failed mmap");
-		return 1;
+	ptr = (char*) addr;
+	for (int i=0; i<len; i++) {
+		switch (s[i])
+		{
+			case '.':
+				break;
+			case '1':
+		    		mlock((void*)(&ptr[PAGE_SIZE*i]), 1);
+		    		break;
+			case '2':
+		    		ptr[PAGE_SIZE*i] = '0';
+				break;
+			default:
+				printf("unkown value: %c\n", s[i]);
+				return;
+		}
 	}
-	print_increasing_mapspages(addr, addr+PAGE_SIZE*len);
+
+	print_maps(addr, addr+PAGE_SIZE*len);
 	munmap((void*)addr, PAGE_SIZE*len);
 }
+
+void main(int argc, char **argv) {
+	char *c;
+
+	if (argc != 2) {
+		printf("usage: check <wanted_str>\n");
+		return;
+	}
+	test8(argv[1]);
+	sleep(20);
+}
+
