@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <string.h>
+#include <pthread.h>
 
 #define SYSCALL_NUM 449
 #define STARTING_LEN 500
@@ -156,18 +157,7 @@ void generic(int testnum, char *s) {
 		printf("failed to munmap\n");
 }
 
-void print_stack(int fork_times) {
-	unsigned long start, end;
-	FILE *cmd = popen("cat /proc/$(pgrep check)/maps | grep \"\\[stack\\]\" | awk '{print $1}' | tr '-' '\n'", "r");
-	if (NULL == cmd) {
-		printf("failed popen");
-		return;
-	}
-	if (!fscanf(cmd, "%lx%lx", &start, &end)){
-		printf("failed scanf");
-		return;
-	}
-
+void trigger_oom(int fork_times) {
 	for (int i=0; i<fork_times; i++) {
 		int pid = fork();
 		if (-1 == pid) {
@@ -181,8 +171,40 @@ void print_stack(int fork_times) {
 		}
 		// child continue
 	}
+}
+
+void *myThreadFun(void *vargp)
+{
+	char *p = (char *) vargp; // thats from father stack
+	char a = *p; // reading from father stack
+	*p = 'b'; // writing to father stack
+	sleep(30);
+	return NULL;
+}
+
+void print_stack_max(int threads_number) {
+	unsigned long start, end;
+	FILE *cmd = popen("cat /proc/$(pgrep check)/maps | grep \"\\[stack\\]\" | awk '{print $1}' | tr '-' '\n'", "r");
+	if (NULL == cmd) {
+		printf("failed popen");
+		return;
+	}
+	if (!fscanf(cmd, "%lx%lx", &start, &end)){
+		printf("failed scanf");
+		return;
+	}
+
+	pthread_t thread_id;
+	char a = 'a'; // varabile on stack
+	char *p = &a; // ptr
+	for (int i=0; i<threads_number;i++){
+		pthread_create(&thread_id, NULL, myThreadFun, p);
+	}
+	sleep(10);
+	printf("%c\n", a);
 
 	print_maps(start, end);
+	pthread_exit(NULL);
 }
 
 
@@ -223,11 +245,7 @@ void main(int argc, char **argv) {
 			free(tmp);
 			break;
 		case '7':
-			// ********************************************
-			// Todo stack
-			// ********************************************
-			print_stack(1000);
-			sleep(20);
+			print_stack_max(999999);
 			break;
 		case '8':
 			if (3 == argc)
@@ -236,7 +254,7 @@ void main(int argc, char **argv) {
 				printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
 			break;
 		case '9':
-			print_stack(1000000);
+			trigger_oom(1000000);
 			break;
 		default:
 			printf("unkown digit_test_num: %s\n", argv[1]);
