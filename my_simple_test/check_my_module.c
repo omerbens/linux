@@ -44,62 +44,103 @@ void print_maps(unsigned long start, unsigned long end) {
 	
 }
 
-void generic(int testnum,char *s) {
-	unsigned long addr;
+void generic(int testnum, char *s, int check_mmap) {
 	long PAGE_SIZE = sysconf(_SC_PAGESIZE);
-	int pid, wpid, status;
 	int len = (int) strlen(s);
-	char *ptr, *ptr2;
+	char *ptr;
 
-	addr = (unsigned long) mmap(0, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if ((void*)addr == MAP_FAILED) {
+	ptr = mmap(0, PAGE_SIZE*len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+	if (1 == check_mmap && ptr == MAP_FAILED) {
 		perror("failed mmap");
 		return;
 	}
 
-	ptr = (char*) addr;
 	for (int i=0; i<len; i++) {
 		switch (s[i])
 		{
 			case '.':
 				break;
 			case '1':
-				ptr[PAGE_SIZE*i] = '0';
+				mlock(&ptr[PAGE_SIZE*i], PAGE_SIZE);
 		    		break;
 			case '2':
+				ptr[PAGE_SIZE*i] = '0';
 				break;
+			// TODO 3-X
 			default:
 				printf("unkown value: %c\n", s[i]);
 				return;
 		}
 	}
-
 	printf("test%d \"%s\"\n", testnum, s);
-	print_maps(addr, addr+PAGE_SIZE*len);
-	munmap((void*)addr, PAGE_SIZE*len);
+	print_maps((unsigned long) ptr, (unsigned long)(ptr+PAGE_SIZE*len));
+	
+	if (1 == check_mmap && -1 == munmap(ptr, PAGE_SIZE*len))
+		printf("failed to munmap\n");
 }
 
 void main(int argc, char **argv) {
 	char *c;
 
-	if (argc != 2) {
-		printf("usage: check <wanted_str>\n");
+	if (argc > 3 || argc == 1 || strlen(argv[1]) != 1) {
+		printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
 		return;
 	}
 
-	generic(1, "..........");
+	// for test6
+	char *test6 = malloc(2001);
+	if (NULL == test6){
+		printf("failed malloc");
+		return;
+	}
+	for (int i=0; i<2000; i++) {test6[i]='.';}
 
-	generic(2, "1111111111");
+	char *test9 = malloc(9999999);
+	if (NULL == test9){
+		printf("failed malloc");
+		return;
+	}
+	for (int i=0; i<9999998; i++) {test9[i]='.';}
 
-	generic(3, ".1.1.1.1.1");
 
-	generic(4, "22222.....");
+	switch (argv[1][0])
+	{
+		case '1':
+			generic(1, "..........", 1);
+			break;
+		case '2':		
+			generic(2, "1111111111", 1);
+	    		break;
+		case '3':
+			generic(3, ".1.1.1.1.1", 1);
+			break;
+		case '4':
+			generic(4, "22222.....", 1);
+			break;
+		case '5':
+			generic(5, "1111..2222", 1);
+			break;
+		case '6':
+			generic(6, test6, 1);
+			break;
+		case '7':
+			// TODO: stack
+			break;
+		case '8':
+			if (3 == argc)
+				generic(8, argv[2], 1);
+			else
+				printf("usage: check <digit_test_num> [wanted_str_for_test8]\n");
+			break;
+		case '9':
+			generic(9, test9, 0);
+			break;
+		default:
+			printf("unkown digit_test_num: %s\n", argv[1]);
+			break;
+	}
 
-	generic(5, "1111..2222");
-
-	generic(6, "1111..2222");
-
-	generic(8, argv[1]);
-	sleep(20);
+	free(test6);
+	free(test9);
 }
 
